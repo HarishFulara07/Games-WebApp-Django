@@ -1,0 +1,427 @@
+<!-- Name: Harish Fulara-->
+<!-- 2D Breakout Game-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>2D Breakout Game</title>
+	{% include 'gamecss.html' %}
+	<style type="text/css">
+		* {
+			padding: 0px;
+			margin: 0px;
+		}
+		body {
+			background-color: #333;
+		}
+		canvas {
+			display: block;
+			border: 3px solid black;
+			margin: 0 auto;
+			margin-top: 30px;
+		}
+		h1 {
+			color: orange;
+			margin-top: 30px;
+			text-align: center;
+			text-decoration: underline;
+			font-weight: 700;
+		}
+	</style>	
+</head>
+<body>
+	<nav class="navbar" style="border-radius: 0px">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="{% url 'home' %}">LetsPlayAGame</a>
+			</div>
+			<ul class="nav navbar-nav">
+				<li><a href="{% url 'game2048' %}">2048</a></li>
+				<li><a href="{% url 'gamebingohome' %}">Bingo</a></li>
+				<li><a href="{% url 'gamebuttonmania' %}">Button Mania</a></li>
+				<li><a href="{% url 'gamebatshoot' %}">Bat Shoot</a></li>
+				<li class="active"><a href="#">Brick Breaker</a></li>
+				<li><a href="{% url 'gametigerjump' %}">Tiger Jump</a></li>
+			</ul>
+			<ul class="nav navbar-nav navbar-right">
+				<li><a href="{% url 'home' %}">Home</a></li>
+				<li><a href="{% url 'games' %}">Games</a></li>
+				<li><a href="#">Contact</a></li>
+			</ul>
+		</div>
+	</nav>
+
+	<!-- Drawing the HTML5 canvas. The cancas is 480px wide and 320px long -->
+	<div>
+		<h1>2D BreakOut Game</h1>
+	</div>
+	<div>
+		<canvas id="myCanvas" width="720" height="480" style="background-color: #0095fd"></canvas>
+	</div>
+	<!-- The JavaScript, which is the complete brain behind the game-->
+	<script type="text/javascript">
+		var canvas = document.getElementById("myCanvas");
+		var ctx = canvas.getContext("2d");
+		/*
+			Defining variables for the ball
+		*/
+		// x coordinate of initial position of the ball
+		var x = canvas.width / 2;
+		// y coordinate of initial position of the ball
+		var y = canvas.height - 30;
+		// change in x coordinate of the ball after a certain time interval. We have defined interval to be 10ms in this example.
+		//  This actually causes the animation that ball is moving.
+		var dx = 3;
+		// change in x coordinate of the ball after a certain time interval.
+		var dy = -3;
+		// radius of the ball
+		var ballRadius = 10;
+		/*
+			Now we'll define a paddle to hit the ball
+		*/
+		var paddleHeight = 10;
+		var paddleWidth = 150;
+		// starting point of the paddle on the x-axis
+		var paddleX = (canvas.width - paddleWidth) / 2;
+		/*
+			Allowing user to control the paddle
+		*/
+		// check whether left key is pressed
+		var isLeftPressed = false;
+		// check whether right key is pressed
+		var isRightPressed = false;
+		/*
+			Defining variables for bricks
+		*/
+		var brickRowCount = 2;
+		var brickColumnCount = 4;
+		//Padding on left and right of a brick
+		var brickPaddingLR = 10;
+		//Padding on top of a brick
+		var brickPaddingTop = 35;
+		//number of bricks in a row
+		var brickWidth = (canvas.width - (2 * brickColumnCount * brickPaddingLR)) / brickColumnCount;
+		//height of each brick
+		var brickHeight = 20;
+		var bricks = [];
+		/*
+			Defining variables for the score
+		*/
+		var score = 0;
+		/*
+			Defining variables for the lives
+		*/
+		var lives = 3;
+		/*
+			Defining variables for the game level
+		*/
+		var level = 1;
+
+		//Displaying the score of the user
+		function drawUserScore() {
+			ctx.font = "bold 16px Arial";
+			ctx.fillStyle = "#000";
+			ctx.fillText("Score: " + score, 43, 20);
+		}
+
+		//Displaying the remaining lives of the user
+		function drawUserLives() {
+			ctx.font = "bold 16px Arial";
+			ctx.fillStyle = "#000";
+			ctx.fillText("Lives: " + lives, canvas.width - 43, 20);
+		}
+
+		//Displaying the current game-level
+		function drawUserLevel() {
+			ctx.font = "bold 16px Arial";
+			ctx.fillStyle = "#000";
+			ctx.textAlign = "center";
+			ctx.fillText("Level: " + level, canvas.width/2, 20);
+		}
+
+		//Initialising the position of all the bricks as (0,0)
+		function drawBricksInit() {
+			for(var i = 0 ; i < brickRowCount ; i++)
+			{
+				bricks[i] = [];
+				for(var j = 0 ; j < brickColumnCount ; j++)
+				{
+					//hit checks whether the ball has been hit or not. 0 specifies that ball has not been hit. 
+					bricks[i][j] = {x:0 , y:0 , hit:0};
+				}
+			}
+		}
+
+		/*
+			function to draw bricks
+		*/
+		function drawBricks() {
+			for(var i = 0 ; i < brickRowCount ; i++)
+			{
+				for(var j = 0 ; j < brickColumnCount ; j++)
+				{
+					if(bricks[i][j].hit === 0)
+					{
+						bricks[i][j].x = (j * brickWidth) + (((2 * j) + 1) * brickPaddingLR);
+						bricks[i][j].y = ((i + 1) * brickPaddingTop) + (i * brickHeight);
+						ctx.beginPath();
+						ctx.rect(bricks[i][j].x, bricks[i][j].y, brickWidth,brickHeight);
+						ctx.fillStyle = "orange";
+						ctx.fill();
+						ctx.closePath();
+					}
+				}
+			}
+		}
+
+		/*
+			function to detect collision of the ball with one of the bricks 
+		*/
+		function collisionDetection() {
+			for(var i = 0 ; i < brickRowCount ; i++)
+			{
+				for(var j = 0 ; j < brickColumnCount ; j++)
+				{
+					var brick = bricks[i][j];
+
+					if(brick.hit === 0)
+					{
+						if(x >= brick.x && x <= brick.x + brickWidth && y >= brick.y && y <= brick.y + brickHeight)
+						{
+							dy = -dy;
+							brick.hit = 1;
+							score++;
+						}
+					}
+				}
+			}
+		}
+
+
+		//Adding an event listener which calls the keyDownPressed() function when a key is pressed. false specifies that initially no key is pressed
+		document.addEventListener("keydown", keyDownPressed, false);
+		//Addding an event listener which calls the keyUpPressed() function when a key is released
+		document.addEventListener("keyup", keyUpPressed, false);
+		//Addding an event listener which calls the mouseMove() function when the mouse is moved
+		document.addEventListener("mousemove", mouseMove, false);
+
+		function keyDownPressed(event) {
+			if(event.keyCode === 39) {
+				isRightPressed = true;
+			}
+			else if(event.keyCode === 37) {
+				isLeftPressed = true;
+			}
+
+		}
+
+		function keyUpPressed(event) {
+			if(event.keyCode === 39) {
+				isRightPressed = false;
+			}
+			else if(event.keyCode === 37){
+				isLeftPressed = false;
+			}
+		}
+
+		function mouseMove(event) {
+			//clienX returns the x coordinate of current mouse poionter
+			var relativeX = event.clientX - canvas.offsetLeft;
+			//console.log(canvas.offsetLeft);
+			if(relativeX < (paddleWidth / 2))
+			{
+				paddleX = 0;
+			}
+			else if(relativeX > canvas.width - (paddleWidth / 2))
+			{
+				paddleX = canvas.width - paddleWidth;
+			}
+			else
+			{
+				paddleX = relativeX - (paddleWidth / 2);
+			}
+		}
+
+		/*
+			Function to draw ball on the canvas.
+		*/
+		function drawBall() {
+			ctx.beginPath();
+			ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+			ctx.fillStyle = "orange";
+			ctx.fill();
+			ctx.closePath();
+		}
+
+		/*
+			Function to draw the paddle
+		*/
+		function drawPaddle() {
+			ctx.beginPath();
+			ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+			ctx.fillStyle = "orange";
+			ctx.fill();
+			ctx.closePath();
+		}
+
+		/*
+			Main function which calls other functions and maintains the game.
+		*/
+		function draw() {
+			// clearRect() function clears the rectangle whose dimensions are passed as arguments to the funtion.
+			// The first 2 arguments define the initial x-y coordinates of the rectangle.
+			// The last 2 arguments define the ending x-y coordinates of the rectangle.
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			//check whether user has already won the game
+			if(score === brickRowCount * brickColumnCount)
+			{
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				//ctx.clearRect(0, 0, canvas.width, canvas.height);	
+				alert("Congratulations!!! You won the game...");
+				level++;
+				ctx.clearRect(0, 0, canvas.width, canvas.height);	
+				if(level == 2)
+				{
+					x = canvas.width / 2;
+					y = canvas.height - 30;
+					dx = 3;
+					dy = -3;
+					paddleWidth = 140;
+					paddleX = (canvas.width - paddleWidth) / 2;
+					isLeftPressed = false;
+					isRightPressed = false;
+					brickRowCount = 3;
+					brickColumnCount = 4;
+					brickWidth = (canvas.width - (2 * brickColumnCount * brickPaddingLR)) / brickColumnCount;
+					score = 0;
+				}
+				else if(level == 3)
+				{
+					x = canvas.width / 2;
+					y = canvas.height - 30;
+					dx = 3;
+					dy = -3;
+					paddleWidth = 130;
+					paddleX = (canvas.width - paddleWidth) / 2;
+					isLeftPressed = false;
+					isRightPressed = false;
+					brickRowCount = 4;
+					brickColumnCount = 4;
+					brickWidth = (canvas.width - (2 * brickColumnCount * brickPaddingLR)) / brickColumnCount;
+					score = 0;	
+				}
+				else if(level == 4)
+				{
+					x = canvas.width / 2;
+					y = canvas.height - 30;
+					dx = 3;
+					dy = -3;
+					paddleWidth = 110;
+					paddleX = (canvas.width - paddleWidth) / 2;
+					isLeftPressed = false;
+					isRightPressed = false;
+					brickRowCount = 5;
+					brickColumnCount = 5;
+					brickWidth = (canvas.width - (2 * brickColumnCount * brickPaddingLR)) / brickColumnCount;
+					score = 0;	
+				}
+				else if(level == 5)
+				{
+					x = canvas.width / 2;
+					y = canvas.height - 30;
+					dx = 3;
+					dy = -3;
+					paddleWidth = 100;
+					paddleX = (canvas.width - paddleWidth) / 2;
+					isLeftPressed = false;
+					isRightPressed = false;
+					brickRowCount = 6;
+					brickColumnCount = 6;
+					brickWidth = (canvas.width - (2 * brickColumnCount * brickPaddingLR)) / brickColumnCount;
+					score = 0;	
+				}
+				else if(level == 6)
+				{
+					document.location.reload();
+				}
+				drawBricksInit();
+			}
+
+			drawBricks();
+			drawBall();
+			drawPaddle();
+			drawUserScore();
+			drawUserLives();
+			drawUserLevel();
+			collisionDetection();
+			
+			
+			//checking x and y coordinates of the ball to make it bounce back from the wall
+			if(x + dx < ballRadius || x + dx > canvas.width - ballRadius)
+			{
+				dx = -dx;
+			}
+			if(y + dy < ballRadius)
+			{
+				dy = -dy;
+			}
+			else if(y + dy > canvas.height - ballRadius - (paddleHeight/2))
+			{
+				if(x >= paddleX - ballRadius && x <= paddleX + paddleWidth + ballRadius)
+				{
+					dy = -dy;
+				}
+				else
+				{
+					lives--;
+					if(lives === 0)
+					{
+						alert("GAME OVER");
+						// Once the game is over, we must reload the page, i.e, restart the game
+						document.location.reload();
+					}
+					else
+					{
+						x = canvas.width / 2;
+						y = canvas.height - 30;
+						if(lives == 2)
+						{
+							dx = 4;
+							dy = -4;
+						}
+						else
+						{
+							dx = 5;
+							dy = -5;
+						}
+						paddleX = (canvas.width - paddleWidth) / 2;
+					}
+				}
+			}
+			//controlling the movement of the paddle
+			if(isRightPressed && paddleX < canvas.width - paddleWidth)
+			{
+				paddleX += 7; 
+			}
+			else if(isLeftPressed && paddleX > 0)
+			{
+				paddleX -= 7;
+			}
+
+			//Changing the x-coordinate of the ball
+			x += dx;
+			//Changing the y-coordinate of the ball
+			y += dy;
+
+			//Calls the draw function again and again
+			requestAnimationFrame(draw);
+		}
+
+		//Initialising the bricks before calling the draw() function
+		drawBricksInit();
+		//Calling the draw function
+		draw();
+	</script>
+</body>
+</html>

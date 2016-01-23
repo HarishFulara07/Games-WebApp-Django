@@ -1,0 +1,698 @@
+{% load staticfiles %}
+
+<!-- Name: Harish Fulara-->
+<!-- BINGO -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>BINGO</title>
+	<link href="{% static 'css/normalize.css' %}" type="text/css" rel="stylesheet" />
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+	{% include 'gamecss.html' %}
+	<style type="text/css">
+		body {
+			background-color: #333;
+		}
+		canvas {
+			display: inline-block;
+			border: 3px solid black;
+		}
+		.btn {
+			width: 140px;
+			height: 100%;
+			margin-right: 5px;
+			font-size: 16px;
+			font-weight: bold;
+			color: #000;
+		}
+	</style>	
+</head>
+<body>
+	<nav class="navbar">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="{% url 'home' %}">LetsPlayAGame</a>
+			</div>
+			<ul class="nav navbar-nav">
+				<li><a href="{% url 'game2048' %}">2048</a></li>
+				<li class="active"><a href="{% url 'gamebingohome' %}">Bingo</a></li>
+				<li><a href="{% url 'gamebuttonmania' %}">Button Mania</a></li>
+				<li><a href="{% url 'gamebatshoot' %}">Bat Shoot</a></li>
+				<li><a href="{% url 'gamebrickbreaker' %}">Brick Breaker</a></li>
+				<li><a href="{% url 'gametigerjump' %}">Tiger Jump</a></li>
+			</ul>
+			<ul class="nav navbar-nav navbar-right">
+				<li><a href="{% url 'home' %}">Home</a></li>
+				<li><a href="{% url 'games' %}">Games</a></li>
+				<li><a href="#">Contact</a></li>
+			</ul>
+		</div>
+	</nav>
+	<div class="container">
+		<canvas id="headCanvas" width="460" height="100" style="background-color: #0095dd;"></canvas>
+		<canvas class="pull-right" id="scoreCanvas" width="310" height="80" style="background-color: #ffdead;"></canvas>
+		<button type="button" class="btn btn-info pull-right" onclick="undoMove()">UNDO MOVE<br><i class="fa fa-undo fa-3x"></i></button>
+	</div>
+	<div class="container">
+		<canvas id="gameCanvas" width="460" height="460" style="background-color: #0095dd;"></canvas>
+		<canvas class="pull-right" id="buttonCanvas" width="460" height="460" style="background-color: #0095dd;"></canvas>
+	</div>
+	<!-- The JavaScript, which is the complete brain behind the game-->
+	<script type="text/javascript">
+		//canvas on which game is drawn
+		var gameCanvas = document.getElementById("gameCanvas");
+		var gameCtx = gameCanvas.getContext("2d");
+
+		//canvas on which BINGO heading is drawn
+		var headCanvas = document.getElementById("headCanvas");
+		var headCtx = headCanvas.getContext("2d");
+
+		//canvas on which buttons are drawn
+		var buttonCanvas = document.getElementById("buttonCanvas");
+		var buttonCtx = buttonCanvas.getContext("2d");
+
+		//canvas on which user's score is drawn
+		var scoreCanvas = document.getElementById("scoreCanvas");
+		var scoreCtx = scoreCanvas.getContext("2d");
+
+		//Width of the tile
+		var tileWidth = 80;
+		//Height of the tile 
+		var tileHeight = 80;
+		//There are a total of 25 tiles in the BINGO game
+		var numberOfTiles = 25;
+		//Array of objects where each object stores the x-y coordinate and current value of a tile. It also stores a flag value.
+		var tiles = [];
+		//Padding of each tile
+		var padding = 10;
+		//Array to store heading BINGO
+		var heading = [];
+		//Array to store buttons from 1 to 25
+		var buttons = [];
+		//value of button which is clicked
+		var buttonValue = 0;
+		//to check how many tiles have been filled
+		var tilesFilled = 0;
+		//to start the game
+		var startGame = false;
+		//score
+		var score = 25;
+		//to cross out BINGO
+		var bingoCount = 0;
+		var bingoFlag = false;
+		//to play tick sound when user crosses out a number on the 5x5 board
+		var tick = new Audio("{% static 'assets/tick.mp3' %}");
+		//to play bingo sound when user win's the game
+		var bingoSound = new Audio("{% static 'assets/bingo.mp3' %}");
+		//track user's move count
+		var countMoves = -1;
+		//track user's move
+		var gameMoves = [];
+
+		/*
+			Event listener for mouse click
+		*/
+		document.addEventListener("click", mouseClicked, false);
+
+		/*
+			Initialize gameMoves[] array	
+		*/
+		function movesInit() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				gameMoves[i] = [];
+				for(var j = 0 ; j < 5 ; j++)
+				{
+					gameMoves[i][j] = {x:-1 , y:-1};
+				}
+			}
+		}
+
+		/*
+			Function to initialize the tiles array.
+			The initial coordinates of a tile are (0,0).
+			Initial value of a tile is 0. 0 value means empty tile.
+			Initial value of flag is false. false means user has not yet crossed the value on the tile.
+			Initial value of rowFlag is false.false means the row in which the tile is present has not yet been crossed out.
+			Initial value of colFlag is false.false means the column in which the tile is present has not yet been crossed out.
+			Initial value of diagFlag is false.false means the diagonal (if applicable) in which the tile is present has not yet been crossed out.
+		*/
+		function drawTilesInit() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				tiles[i] = [];
+				for(var j = 0 ; j < 5 ; j++)
+				{
+					tiles[i][j] = {x:0 , y:0 , value:0 , flag:false , rowFlag: false , colFlag:false , diagFlag: false};
+				}
+			}
+		}
+
+		/*
+			Draw tiles on the 5x5 board when the game starts
+		*/
+		function drawTiles() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				for(var j = 0 ; j < 5 ; j++)
+				{
+					tiles[i][j].x = ((j + 1) * padding) + (j * tileWidth);
+					tiles[i][j].y = ((i + 1) * padding) + (i * tileHeight);
+					gameCtx.beginPath();
+					gameCtx.rect(tiles[i][j].x, tiles[i][j].y, tileWidth, tileHeight);
+					gameCtx.fillStyle = "#ffa500";
+					gameCtx.fill();
+					gameCtx.closePath();
+				}
+			}
+		}
+
+		/*
+			Function to draw value on a tile 
+		*/
+		function drawValueOnTile() {
+
+			gameCtx.font = "bold 48px Arial";
+			gameCtx.textAlign = "center";
+			gameCtx.textBaseline = "middle";
+			gameCtx.fillStyle = "#000";
+			
+			tiles[0][0].value = parseInt({{ num11 }});
+			gameCtx.fillText({{ num11 }}, tiles[0][0].x + (tileWidth / 2), tiles[0][0].y + (tileHeight / 2));
+
+			tiles[0][1].value = parseInt({{ num12 }});
+			gameCtx.fillText({{ num12 }}, tiles[0][1].x + (tileWidth / 2), tiles[0][1].y + (tileHeight / 2));
+
+			tiles[0][2].value = parseInt({{ num13 }});
+			gameCtx.fillText({{ num13 }}, tiles[0][2].x + (tileWidth / 2), tiles[0][2].y + (tileHeight / 2));
+
+			tiles[0][3].value = parseInt({{ num14 }});
+			gameCtx.fillText({{ num14 }}, tiles[0][3].x + (tileWidth / 2), tiles[0][3].y + (tileHeight / 2));
+
+			tiles[0][4].value = parseInt({{ num15 }});
+			gameCtx.fillText({{ num15 }}, tiles[0][4].x + (tileWidth / 2), tiles[0][4].y + (tileHeight / 2));
+
+			tiles[1][0].value = parseInt({{ num21 }});
+			gameCtx.fillText({{ num21 }}, tiles[1][0].x + (tileWidth / 2), tiles[1][0].y + (tileHeight / 2));
+
+			tiles[1][1].value = parseInt({{ num22 }});
+			gameCtx.fillText({{ num22 }}, tiles[1][1].x + (tileWidth / 2), tiles[1][1].y + (tileHeight / 2));
+
+			tiles[1][2].value = parseInt({{ num23 }});
+			gameCtx.fillText({{ num23 }}, tiles[1][2].x + (tileWidth / 2), tiles[1][2].y + (tileHeight / 2));
+
+			tiles[1][3].value = parseInt({{ num24 }});
+			gameCtx.fillText({{ num24 }}, tiles[1][3].x + (tileWidth / 2), tiles[1][3].y + (tileHeight / 2));
+
+			tiles[1][4].value = parseInt({{ num25 }});
+			gameCtx.fillText({{ num25 }}, tiles[1][4].x + (tileWidth / 2), tiles[1][4].y + (tileHeight / 2));
+
+			tiles[2][0].value = parseInt({{ num31 }});
+			gameCtx.fillText({{ num31 }}, tiles[2][0].x + (tileWidth / 2), tiles[2][0].y + (tileHeight / 2));
+
+			tiles[2][1].value = parseInt({{ num32 }});
+			gameCtx.fillText({{ num32 }}, tiles[2][1].x + (tileWidth / 2), tiles[2][1].y + (tileHeight / 2));
+
+			tiles[2][2].value = parseInt({{ num33 }});
+			gameCtx.fillText({{ num33 }}, tiles[2][2].x + (tileWidth / 2), tiles[2][2].y + (tileHeight / 2));
+
+			tiles[2][3].value = parseInt({{ num34 }});
+			gameCtx.fillText({{ num34 }}, tiles[2][3].x + (tileWidth / 2), tiles[2][3].y + (tileHeight / 2));
+
+			tiles[2][4].value = parseInt({{ num35 }});
+			gameCtx.fillText({{ num35 }}, tiles[2][4].x + (tileWidth / 2), tiles[2][4].y + (tileHeight / 2));
+
+			tiles[3][0].value = parseInt({{ num41 }});
+			gameCtx.fillText({{ num41 }}, tiles[3][0].x + (tileWidth / 2), tiles[3][0].y + (tileHeight / 2));
+
+			tiles[3][1].value = parseInt({{ num42 }});
+			gameCtx.fillText({{ num42 }}, tiles[3][1].x + (tileWidth / 2), tiles[3][1].y + (tileHeight / 2));
+
+			tiles[3][2].value = parseInt({{ num43 }});
+			gameCtx.fillText({{ num43 }}, tiles[3][2].x + (tileWidth / 2), tiles[3][2].y + (tileHeight / 2));
+
+			tiles[3][3].value = parseInt({{ num44 }});
+			gameCtx.fillText({{ num44 }}, tiles[3][3].x + (tileWidth / 2), tiles[3][3].y + (tileHeight / 2));
+
+			tiles[3][4].value = parseInt({{ num45 }});
+			gameCtx.fillText({{ num45 }}, tiles[3][4].x + (tileWidth / 2), tiles[3][4].y + (tileHeight / 2));
+
+			tiles[4][0].value = parseInt({{ num51 }});
+			gameCtx.fillText({{ num51 }}, tiles[4][0].x + (tileWidth / 2), tiles[4][0].y + (tileHeight / 2));
+
+			tiles[4][1].value = parseInt({{ num52 }});
+			gameCtx.fillText({{ num52 }}, tiles[4][1].x + (tileWidth / 2), tiles[4][1].y + (tileHeight / 2));
+
+			tiles[4][2].value = parseInt({{ num53 }});
+			gameCtx.fillText({{ num53 }}, tiles[4][2].x + (tileWidth / 2), tiles[4][2].y + (tileHeight / 2));
+
+			tiles[4][3].value = parseInt({{ num54 }});
+			gameCtx.fillText({{ num54 }}, tiles[4][3].x + (tileWidth / 2), tiles[4][3].y + (tileHeight / 2));
+
+			tiles[4][4].value = parseInt({{ num55 }});
+			gameCtx.fillText({{ num55 }}, tiles[4][4].x + (tileWidth / 2), tiles[4][4].y + (tileHeight / 2));
+		}
+
+		/*
+			Draw score
+		*/
+		function drawScore() {
+			scoreCtx.beginPath();
+			scoreCtx.rect(0, 0, scoreCanvas.width, scoreCanvas.height);
+			scoreCtx.fillStyle = "#ffdead";
+			scoreCtx.fill();
+			scoreCtx.closePath();
+			//console.log("hi");
+			
+			scoreCtx.font = "bold 32px Arial"
+			scoreCtx.textAlign = "center";
+			scoreCtx.textBaseline = "middle";
+			scoreCtx.fillStyle = "#000";
+			scoreCtx.fillText("SCORE: " + score, scoreCanvas.width / 2, scoreCanvas.height / 2);
+		}
+
+		/*
+			Function to initialize the heading array.
+			The initial coordinates of a heading are (0,0).
+			Initial value of flag is false. false means the bingo header tile has not yet been crossed.
+		*/
+		function drawBINGOHeadingInit() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				heading[i] = {x:0 , y:0 , flag:false};
+			}
+		}
+
+		/*
+			Draw BINGO heading on the 5x5 board when the game starts
+		*/
+		function drawBINGOHeading() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				var textValue;
+
+				switch(i)
+				{
+					case 0: textValue = "B"; headCtx.fillStyle = "#00ff7f";
+					break;
+					case 1: textValue = "I"; headCtx.fillStyle = "#cc99ff";
+					break;
+					case 2: textValue = "N"; headCtx.fillStyle = "#ff00ff";
+					break;
+					case 3: textValue = "G"; headCtx.fillStyle = "#ee82ee";
+					break;
+					case 4: textValue = "O"; headCtx.fillStyle = "#ffc0cb";
+					break;
+				}
+
+				heading[i].x = ((i + 1) * padding) + (i * tileWidth);
+				heading[i].y = padding;
+				headCtx.beginPath();
+				headCtx.rect(heading[i].x, heading[i].y, tileWidth, tileHeight);
+				headCtx.fill();
+				headCtx.closePath();
+
+				headCtx.font = "bold 48px Arial";
+				headCtx.fillStyle = "#fff";
+				headCtx.textAlign = "center";
+				headCtx.textBaseline = "middle";
+				headCtx.fillText(textValue, heading[i].x + (tileWidth / 2), heading[i].y + (tileHeight / 2));
+			}
+		}
+
+		/*
+			Function to initialize the buttons array.
+			The initial coordinates of a buttons are (0,0).
+			Initial value of a button is 0. 0 value means empty tile.
+			Initial value of flag is false. false means that button has not yet been clicked.
+		*/
+		function drawButtonsInit() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				buttons[i] = [];
+				for(var j = 0 ; j < 5 ; j++)
+				{
+					buttons[i][j] = {x:0 , y:0 , value:0 , flag:false};
+				}
+			}
+		}
+
+		
+
+		/*
+			Draw buttons on the 5x5 board when the game starts
+		*/
+		function drawButtons() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				for(var j = 0 ; j < 5 ; j++)
+				{
+					buttons[i][j].x = ((j + 1) * padding) + (j * tileWidth);
+					buttons[i][j].y = ((i + 1) * padding) + (i * tileHeight);
+
+					buttonCtx.beginPath();
+					buttonCtx.rect(buttons[i][j].x, buttons[i][j].y, tileWidth, tileHeight);
+					buttonCtx.fillStyle = "#333";
+					buttonCtx.fill();
+					buttonCtx.closePath();
+				}
+			}
+		}
+
+		/*
+			function to start the game
+		*/
+		function startBingo()
+		{
+			startGame = true;
+		}
+
+		/*
+			function which handles the event when a mouse button is clicked
+		*/
+		function mouseClicked(event) {
+			/*
+				check if the mouse is clicked on gameCanvas
+			*/
+
+			if(event.clientX <= gameCanvas.offsetLeft + gameCanvas.width && event.clientX >= gameCanvas.offsetLeft && event.clientY >= gameCanvas.offsetTop && event.clientY <= gameCanvas.offsetTop + gameCanvas.height)
+			{
+				var relativeX = event.clientX - gameCanvas.offsetLeft;
+				var relativeY = event.clientY - gameCanvas.offsetTop;
+
+				//check whether to start the game or not. Game is started once all the 25 tiles on the board are filled.
+				if(startGame)
+				{
+					for(var i = 0 ; i < 5 ; i++)
+					{
+						for(var j = 0 ; j < 5 ; j++)
+						{
+							if(!tiles[i][j].flag && tiles[i][j].value > 0 && relativeX >= tiles[i][j].x && relativeX <= tiles[i][j].x + tileWidth && relativeY >= tiles[i][j].y && relativeY <= tiles[i][j].y + tileHeight)
+							{
+								tick.play();
+								crossOutTile(i, j);
+								drawCrossedTile(i, j);
+								tiles[i][j].flag = true;
+								score--;
+								drawScore();
+								checkHorizontalBINGO();
+								checkVerticalBINGO();
+								checkCrossBINGO();
+
+								++countMoves;
+								var posX = Math.floor(countMoves / 5);
+								var posY = countMoves % 5;
+
+								gameMoves[posX][posY].x = i;
+								gameMoves[posX][posY].y = j;
+
+								//console.log(gameMoves[posX][posY].x + " " + gameMoves[posX][posY].y);
+
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		/*
+			Function to cross out a tile when it is clicked after the game has started
+		*/
+		function crossOutTile(posX, posY) {
+			gameCtx.beginPath();
+			//console.log(posX + " " + posY);
+			gameCtx.moveTo(tiles[posX][posY].x + 10, tiles[posX][posY].y + 10);
+			gameCtx.lineTo(tiles[posX][posY].x + tileWidth - 10, tiles[posX][posY].y + tileHeight - 10);
+			gameCtx.moveTo(tiles[posX][posY].x + tileWidth - 10, tiles[posX][posY].y + 10);
+			gameCtx.lineTo(tiles[posX][posY].x + 10, tiles[posX][posY].y + tileHeight - 10);
+			gameCtx.strokeStyle = "#eee";
+			gameCtx.lineWidth = 3;
+			gameCtx.lineCap = "round";
+			gameCtx.stroke();
+			gameCtx.closePath();
+			//console.log("hi");
+		}
+
+		/*
+			function to draw the tile which has been crossed out in the gamecanvas on the buttonCanvas
+		*/
+		function drawCrossedTile(posX, posY)
+		{
+			buttonCtx.font = "bold 48px Arial";
+			buttonCtx.fillStyle = "#fff";
+			buttonCtx.textAlign = "center";
+			buttonCtx.textBaseline = "middle";
+			buttonCtx.fillText(tiles[posX][posY].value.toString(), buttons[posX][posY].x + (tileWidth / 2),buttons[posX][posY].y + (tileHeight / 2));
+		}
+
+		/*
+			Function to check whether all values in a row are crossed out
+		*/
+		function checkHorizontalBINGO()
+		{
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				if(!tiles[i][0].rowFlag && !tiles[i][1].rowFlag && !tiles[i][2].rowFlag && !tiles[i][3].rowFlag && !tiles[i][4].rowFlag)
+				{
+					if(tiles[i][0].flag && tiles[i][1].flag && tiles[i][2].flag && tiles[i][3].flag && tiles[i][4].flag)
+					{
+						tiles[i][0].rowFlag = true;
+						tiles[i][1].rowFlag = true;
+						tiles[i][2].rowFlag = true;
+						tiles[i][3].rowFlag = true;
+						tiles[i][4].rowFlag = true;
+
+						gameCtx.beginPath();
+						gameCtx.moveTo(tiles[i][0].x + 10, tiles[i][0].y + tileHeight / 2);
+						gameCtx.lineTo(tiles[i][4].x + tileWidth - 10, tiles[i][4].y + tileHeight /2);
+						gameCtx.strokeStyle = "#ff0000";
+						gameCtx.lineWidth = 3;
+						gameCtx.lineCap = "round";
+						gameCtx.stroke();
+						gameCtx.closePath();
+
+						bingoCount++;
+						bingoFlag = true;
+						crossOutBINGO();
+
+						break;
+					}
+				}
+			}
+		}
+
+		/*
+			Function to check whether all values in a column are crossed out
+		*/
+		function checkVerticalBINGO()
+		{
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				if(!tiles[0][i].colFlag && !tiles[1][i].colFlag && !tiles[2][i].colFlag && !tiles[3][i].colFlag && !tiles[4][i].colFlag)
+				{
+					if(tiles[0][i].flag && tiles[1][i].flag && tiles[2][i].flag && tiles[3][i].flag && tiles[4][i].flag)
+					{
+						tiles[0][i].colFlag = true;
+						tiles[1][i].colFlag = true;
+						tiles[2][i].colFlag = true;
+						tiles[3][i].colFlag = true;
+						tiles[4][i].colFlag = true;
+
+						gameCtx.beginPath();
+						gameCtx.moveTo(tiles[0][i].x + tileWidth / 2, tiles[0][i].y + 10);
+						gameCtx.lineTo(tiles[4][i].x + tileWidth / 2, tiles[4][i].y + tileHeight - 10);
+						gameCtx.strokeStyle = "#ff0000";
+						gameCtx.lineWidth = 3;
+						gameCtx.lineCap = "round";
+						gameCtx.stroke();
+						gameCtx.closePath();
+
+						bingoCount++;
+						bingoFlag = true;
+						crossOutBINGO();
+
+						break;
+					}
+				}
+			}
+		}
+
+		/*
+			Function to check whether all values in a diagonal are crossed out
+		*/
+		function checkCrossBINGO()
+		{
+			if(!tiles[0][0].diagFlag && !tiles[1][1].diagFlag && !tiles[3][3].diagFlag && !tiles[4][4].diagFlag)
+			{
+				if(tiles[0][0].flag && tiles[1][1].flag && tiles[2][2].flag && tiles[3][3].flag && tiles[4][4].flag)
+				{
+					tiles[0][0].diagFlag = true;
+					tiles[1][1].diagFlag = true;
+					tiles[2][2].diagFlag = true;
+					tiles[3][3].diagFlag = true;
+					tiles[4][4].diagFlag = true;
+					
+					gameCtx.beginPath();
+					gameCtx.moveTo(tiles[0][0].x + 10, tiles[0][0].y + 10);
+					gameCtx.lineTo(tiles[4][4].x + tileWidth - 10, tiles[4][4].y + tileHeight - 10);
+					gameCtx.strokeStyle = "#ff0000";
+					gameCtx.lineWidth = 3;
+					gameCtx.lineCap = "round";
+					gameCtx.stroke();
+					gameCtx.closePath();
+
+					bingoCount++;
+					bingoFlag = true;
+					crossOutBINGO();
+				}
+			}
+			if(!tiles[0][4].diagFlag && !tiles[1][3].diagFlag && !tiles[3][1].diagFlag && !tiles[4][0].diagFlag)
+			{
+				if(tiles[0][4].flag && tiles[1][3].flag && tiles[2][2].flag && tiles[3][1].flag && tiles[4][0].flag)
+				{
+					tiles[0][4].diagFlag = true;
+					tiles[1][3].diagFlag = true;
+					tiles[2][2].diagFlag = true;
+					tiles[3][1].diagFlag = true;
+					tiles[4][0].diagFlag = true;
+					
+					gameCtx.beginPath();
+					gameCtx.moveTo(tiles[0][4].x + tileWidth - 10, tiles[0][4].y + 10);
+					gameCtx.lineTo(tiles[4][0].x + 10, tiles[4][0].y + tileHeight - 10);
+					gameCtx.strokeStyle = "#ff0000";
+					gameCtx.lineWidth = 3;
+					gameCtx.lineCap = "round";
+					gameCtx.stroke();
+					gameCtx.closePath();
+
+					bingoCount++;
+					bingoFlag = true;
+					crossOutBINGO();
+				}
+			}
+		}
+
+		/*
+			function to crossout bingo in the header
+		*/
+		function crossOutBINGO() {
+			if(bingoFlag)
+			{
+				var pos = bingoCount - 1;
+
+				if(!heading[pos].flag)
+				{
+					heading[pos].flag = true;
+					headCtx.beginPath();
+					headCtx.moveTo(heading[pos].x + 10, heading[pos].y + 10);
+					headCtx.lineTo(heading[pos].x + tileWidth - 10, heading[pos].y + tileHeight - 10);
+					headCtx.moveTo(heading[pos].x + tileWidth - 10, heading[pos].y + 10);
+					headCtx.lineTo(heading[pos].x + 10, heading[pos].y + tileHeight - 10);
+					headCtx.strokeStyle = "#000";
+					headCtx.lineWidth = 3;
+					headCtx.lineCap = "round";
+					headCtx.stroke();
+					headCtx.closePath();
+				}
+				else
+				{
+					bingoCount--;
+				}
+
+				bingoFlag = false;
+				checkGameOver();
+				//console.log("hi");
+			}
+		}
+
+		/*
+			function to check if user has won the game
+		*/
+		function checkGameOver()
+		{
+			if(heading[0].flag && heading[1].flag && heading[2].flag && heading[3].flag && heading[4].flag)
+			{
+				bingoSound.play();
+				alert("BINGO!!! You Won The GAME");
+				window.location = {% url 'gamebingohome' %};
+			}
+		}
+
+		/*
+			undo user's last move
+		*/
+		function undoMove()
+		{
+			//console.log(countMoves);
+			if(countMoves !== -1)
+			{
+				//console.log(gameMoves[posX][posX].x + " " + gameMoves[posX][posY].y);
+				undoTile();
+
+				--countMoves;
+			}
+		}
+
+		/*
+			Refill tile value when undo button is pressed
+		*/
+		function undoTile()
+		{
+			//canvas on which game is drawn
+			gameCtx.beginPath();
+			gameCtx.rect(0, 0, gameCanvas.width, gameCanvas.height);
+			gameCtx.fillStyle = "#0095dd";
+			gameCtx.fill();
+			gameCtx.closePath();
+
+			drawTilesInit();
+			drawTiles();
+			drawValueOnTile();
+			score++;
+			drawScore();
+			drawBINGOHeadingInit();
+			drawBINGOHeading();
+			drawButtonsInit();
+			drawButtons();
+
+			bingoCount = 0;
+			bingoFlag = false;
+
+			for(var i=0; i<countMoves ; i++)
+			{
+				var pos_X = Math.floor(i / 5);
+				var pos_Y = i % 5;
+
+				//console.log(pos_X + " " + pos_Y);
+				
+				var posX = gameMoves[pos_X][pos_Y].x;
+				var posY = gameMoves[pos_X][pos_Y].y;
+
+				//console.log(posX + " " + posY);
+
+				crossOutTile(posX, posY);
+				drawCrossedTile(posX, posY);
+				tiles[posX][posY].flag = true;
+				checkHorizontalBINGO();
+				checkVerticalBINGO();
+				checkCrossBINGO();
+			}
+		}
+
+		//console.log(request.POST['num11']);
+		movesInit();
+		drawTilesInit();
+		drawTiles();
+		drawValueOnTile();
+		drawScore();
+		drawBINGOHeadingInit();
+		drawBINGOHeading();
+		drawButtonsInit();
+		drawButtons();
+		startBingo();
+	</script>
+</body>
+</html>

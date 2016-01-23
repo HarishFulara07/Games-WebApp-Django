@@ -1,0 +1,446 @@
+{% load staticfiles %}
+
+<!-- Name: Harish Fulara-->
+<!-- BINGO -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>BINGO</title>
+	<link href="{% static 'css/normalize.css' %}" type="text/css" rel="stylesheet" />
+	{% include 'gamecss.html' %}
+ 	<style type="text/css">
+ 		body {
+			background-color: #333;
+		}
+		.instruction {
+			border: 3px solid black;
+			font-size: 16px;
+			padding-left: 10px;
+			background-color: #fff;
+			color: #000;
+			text-align: justify;
+			font-weight: bold;
+			margin-bottom: 10px;
+		}
+ 		.bingo {
+ 			display: inline-block;
+ 			border: 3px solid black;
+ 			background-color: #0095dd;
+ 			padding: 5px;
+ 			margin-bottom: 10px;
+ 		}
+ 		.my-row {
+ 			display: block;
+ 		}
+ 		.form-group {
+ 			display: inline-block;
+ 			margin: 5px;
+ 		}
+ 		.form-control {
+ 			display: inline;
+ 			height:80px;
+ 			width:80px;
+ 			font-size: 48px;
+ 			background-color: #ffa500;
+ 			color: #000;
+ 			font-weight: bold;
+ 		}
+ 		.wrapper {
+		    text-align: center;
+		    margin-top: 5px;
+		    margin-bottom: 10px;
+		}
+		canvas {
+			display: inline-block;
+			border: 3px solid black;
+		}
+ 	</style>
+</head>
+<body>
+	<nav class="navbar">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="{% url 'home' %}">LetsPlayAGame</a>
+			</div>
+			<ul class="nav navbar-nav">
+				<li><a href="{% url 'game2048' %}">2048</a></li>
+				<li class="active"><a href="#">Bingo</a></li>
+				<li><a href="{% url 'gamebuttonmania' %}">Button Mania</a></li>
+				<li><a href="{% url 'gamebatshoot' %}">Bat Shoot</a></li>
+				<li><a href="{% url 'gamebrickbreaker' %}">Brick Breaker</a></li>
+				<li><a href="{% url 'gametigerjump' %}">Tiger Jump</a></li>
+			</ul>
+			<ul class="nav navbar-nav navbar-right">
+				<li><a href="{% url 'home' %}">Home</a></li>
+				<li><a href="{% url 'games' %}">Games</a></li>
+				<li><a href="#">Contact</a></li>
+			</ul>
+		</div>
+	</nav>
+	<div class="container instruction">
+		<h3 style="font-weight: bold"><ins>How To Play</ins></h3>
+		<p>1. Fill all the bingo cells using your keyboard with numbers from 1 - 25.</p>
+		<p>2. Start the game by clicking on "PLAY BINGO".</p>
+	</div>
+	<div class="container">
+		<canvas id="headCanvas" width="475" height="100" style="background-color: #0095dd"></canvas>
+	</div>
+	<div class="container">
+		<div class="bingo">
+			<form role="form" method="POST" action="{% url 'gamebingoplay' %}" onsubmit="return gameValidation()">{% csrf_token %}
+				<div class="my-row">
+					<div class="form-group">
+						<input class="form-control" id="num11" name="num11" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num12" name="num12" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num13" name="num13" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num14" name="num14" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num15" name="num15" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+				</div>
+				<div class="my-row">
+					<div class="form-group">
+						<input class="form-control" id="num21" name="num21" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num22" name="num22" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num23" name="num23" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num24" name="num24" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num25" name="num25" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+				</div>
+				<div class="my-row">
+					<div class="form-group">
+						<input class="form-control" id="num31" name="num31" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num32" name="num32" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num33" name="num33" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num34" name="num34" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num35" name="num35" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+				</div>
+				<div class="my-row">
+					<div class="form-group">
+						<input class="form-control" id="num41" name="num41" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num42" name="num42" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num43" name="num43" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num44" name="num44" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num45" name="num45" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+				</div>
+				<div class="my-row">
+					<div class="form-group">
+						<input class="form-control" id="num51" name="num51" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num52" name="num52" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num53" name="num53" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num54" name="num54" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+					<div class="form-group">
+						<input class="form-control" id="num55" name="num55" type="text" maxlength="2" onblur="checkBingo()">
+					</div>
+				</div>
+				<div class="wrapper">
+					<button type="submit" class="btn btn-default btn-lg">PLAY BINGO</button>
+				</div>
+			</form>
+		</div>
+		
+		<canvas id="buttonCanvas" width="460" height="460" style="background-color: #0095dd; float:right;"></canvas>
+	</div>
+
+	<script type="text/javascript">
+		//canvas on which BINGO heading is drawn
+		var headCanvas = document.getElementById("headCanvas");
+		var headCtx = headCanvas.getContext("2d");
+		//canvas on which buttons are drawn
+		var buttonCanvas = document.getElementById("buttonCanvas");
+		var buttonCtx = buttonCanvas.getContext("2d");
+
+		var num = [];
+		var fre = [];
+
+		//Width of the tile
+		var tileWidth = 80;
+		//Height of the tile 
+		var tileHeight = 80;
+		//There are a total of 25 tiles in the BINGO game
+		var numberOfTiles = 25;
+		//Array of objects where each object stores the x-y coordinate and current value of a tile. It also stores a flag value.
+		var padding = 10;
+		//Array to store buttons from 1 to 25
+		var buttons = [];
+
+		num[0] = document.getElementById('num11');
+		num[1] = document.getElementById('num12');
+		num[2] = document.getElementById('num13');
+		num[3] = document.getElementById('num14');
+		num[4] = document.getElementById('num15');
+		num[5] = document.getElementById('num21');
+		num[6] = document.getElementById('num22');
+		num[7] = document.getElementById('num23');
+		num[8] = document.getElementById('num24');
+		num[9] = document.getElementById('num25');
+		num[10] = document.getElementById('num31');
+		num[11] = document.getElementById('num32');
+		num[12] = document.getElementById('num33');
+		num[13] = document.getElementById('num34');
+		num[14] = document.getElementById('num35');
+		num[15] = document.getElementById('num41');
+		num[16] = document.getElementById('num42');
+		num[17] = document.getElementById('num43');
+		num[18] = document.getElementById('num44');
+		num[19] = document.getElementById('num45');
+		num[20] = document.getElementById('num51');
+		num[21] = document.getElementById('num52');
+		num[22] = document.getElementById('num53');
+		num[23] = document.getElementById('num54');
+		num[24] = document.getElementById('num55');
+
+		/*
+			Draw BINGO heading on the 5x5 board when the game starts
+		*/
+		function drawBINGOHeading() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				var textValue;
+
+				switch(i)
+				{
+					case 0: textValue = "B"; headCtx.fillStyle = "#00ff7f";
+					break;
+					case 1: textValue = "I"; headCtx.fillStyle = "#cc99ff";
+					break;
+					case 2: textValue = "N"; headCtx.fillStyle = "#ff00ff";
+					break;
+					case 3: textValue = "G"; headCtx.fillStyle = "#ee82ee";
+					break;
+					case 4: textValue = "O"; headCtx.fillStyle = "#ffc0cb";
+					break;
+				}
+
+				headCtx.beginPath();
+				headCtx.rect(((i + 1) * 12.5) + (i * 80), 10, 80, 80);
+				headCtx.fill();
+				headCtx.closePath();
+
+				headCtx.font = "bold 48px Arial";
+				headCtx.fillStyle = "#fff";
+				headCtx.textAlign = "center";
+				headCtx.textBaseline = "middle";
+				headCtx.fillText(textValue, ((i + 1) * 12.5) + (i * 80) + (40), 10 + (40));
+			}
+		}
+
+		function checkBingo() {
+
+			for(var i=0 ; i<25 ; i++)
+			{
+				fre[i] = 0;
+			}
+
+			for(var i=0; i<25 ; i++)
+			{
+				if(num[i].value === "")
+				{
+					num[i].style.background = "orange";
+				}
+
+			}
+
+			for(var i=0 ; i<25 ; i++)
+			{
+				if(parseInt(num[i].value) >= 1 && parseInt(num[i].value) <= 25)
+				{
+					fre[parseInt(num[i].value) - 1] += 1;
+					//console.log(num[i].value - 1);
+					//console.log(fre[num[i].value - 1]);
+				}
+				else if(num[i].value !== "")
+				{
+					num[i].style.background = "red";
+				}
+			}
+
+			for(var i=0 ; i<25; i++)
+			{
+				if(fre[parseInt(num[i].value) - 1] > 1)
+				{
+					//console.log("hi");
+					for(var j=0 ; j<25 ; j++)
+					{
+						//console.log(parseInt(num[j].value) + " " + (i+1));
+						if(num[j].value !== "" && parseInt(num[j].value) === parseInt(num[i].value))
+						{
+							num[j].style.background = "#a9a9a9";
+						}
+					}
+				}
+				else if(fre[parseInt(num[i].value) - 1] === 1)
+				{
+					num[i].style.background = "green";
+				}
+			}
+
+			for(var i=0 ; i<25 ; i++)
+			{
+				var posX = Math.floor(i / 5);
+				var posY = i % 5;
+				
+				if(fre[i] === 0)
+				{
+					drawValue(posX, posY, i+1);	
+				}
+				else
+				{
+					clearValue(posX, posY);
+				}
+			}
+		}
+
+		function drawValue(i, j, value)
+		{
+			console.log(i + " " + j);
+			buttonCtx.beginPath();
+			buttonCtx.rect(buttons[i][j].x, buttons[i][j].y, tileWidth, tileHeight);
+			buttonCtx.fillStyle = "#333";
+			buttonCtx.fill();
+			buttonCtx.closePath();
+
+			buttonCtx.font = "bold 48px Arial";
+			buttonCtx.fillStyle = "#fff";
+			buttonCtx.textAlign = "center";
+			buttonCtx.textBaseline = "middle";
+			buttonCtx.fillText(value.toString(), buttons[i][j].x + (tileWidth / 2), buttons[i][j].y + (tileHeight / 2));
+		}
+
+		function clearValue(i, j)
+		{
+			buttonCtx.beginPath();
+			buttonCtx.rect(buttons[i][j].x, buttons[i][j].y, tileWidth, tileHeight);
+			buttonCtx.fillStyle = "#333";
+			buttonCtx.fill();
+			buttonCtx.closePath();
+		}
+
+		function gameValidation() {
+			for(var i=0 ; i<25 ; i++)
+			{
+				if(num[i].value === "")
+				{
+					alert("Please Fill All The Cells Correctly To Proceed To PLAY THE GAME");
+					return false;
+				}
+			}
+
+			for(var i=0 ; i<25 ; i++)
+			{
+				if(parseInt(num[i].value) < 1 && parseInt(num[i].value) > 25)
+				{
+					alert("Please Fill All The Cells Correctly To Proceed To PLAY THE GAME");
+					return false;
+				}
+			}
+
+			for(var i=0 ; i<25 ; i++)
+			{
+				if(fre[i] !== 1)
+				{
+					alert("Please Fill All The Cells Correctly To Proceed To PLAY THE GAME");
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		/*
+			Function to initialize the buttons array.
+			The initial coordinates of a buttons are (0,0).
+			Initial value of a button is 0. 0 value means empty tile.
+			Initial value of flag is false. false means that button has not yet been clicked.
+		*/
+		function drawButtonsInit() {
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				buttons[i] = [];
+				for(var j = 0 ; j < 5 ; j++)
+				{
+					buttons[i][j] = {x:0 , y:0 , value:0 , flag:false};
+				}
+			}
+		}
+
+		
+
+		/*
+			Draw buttons on the 5x5 board when the game starts
+		*/
+		function drawButtons() {
+			var counter = 1;
+			for(var i = 0 ; i < 5 ; i++)
+			{
+				for(var j = 0 ; j < 5 ; j++)
+				{
+					buttons[i][j].x = ((j + 1) * padding) + (j * tileWidth);
+					buttons[i][j].y = ((i + 1) * padding) + (i * tileHeight);
+					buttons[i][j].value = counter;
+
+					buttonCtx.beginPath();
+					buttonCtx.rect(buttons[i][j].x, buttons[i][j].y, tileWidth, tileHeight);
+					buttonCtx.fillStyle = "#333";
+					buttonCtx.fill();
+					buttonCtx.closePath();
+
+					buttonCtx.font = "bold 48px Arial";
+					buttonCtx.fillStyle = "#fff";
+					buttonCtx.textAlign = "center";
+					buttonCtx.textBaseline = "middle";
+					buttonCtx.fillText(counter.toString(), buttons[i][j].x + (tileWidth / 2), buttons[i][j].y + (tileHeight / 2));
+
+					counter++;
+				}
+			}
+		}
+
+		drawBINGOHeading();
+		drawButtonsInit();
+		drawButtons();
+	</script>
+</body>
+</html>

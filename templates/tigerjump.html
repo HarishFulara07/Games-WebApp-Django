@@ -1,0 +1,51 @@
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Tiger Jump</title>
+        <link href="{% static 'css/normalize.css' %}" type="text/css" rel="stylesheet" />
+        <script language="javascript" type="text/javascript" src="https://code.createjs.com/createjs-2015.11.26.min.js" ></script>
+        {% include 'gamecss.html' %}
+    </head>
+    <style>
+        * {
+            padding: 0px;
+            margin: 0px;
+        }
+        body {
+            background-color: #333;
+        }
+        canvas {
+            background-color: #fff;
+            display: block;
+            border: 3px solid black;
+            margin: 0 auto;
+            margin-top: 20px;
+        }
+    </style>
+    <body>
+        <nav class="navbar">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="{% url 'home' %}">LetsPlayAGame</a>
+                </div>
+                <ul class="nav navbar-nav">
+                    <li><a href="{% url 'game2048' %}">2048</a></li>
+                    <li><a href="{% url 'gamebingohome' %}">Bingo</a></li>
+                    <li><a href="{% url 'gamebuttonmania' %}">Button Mania</a></li>
+                    <li><a href="{% url 'gamebatshoot' %}">Bat Shoot</a></li>
+                    <li><a href="{% url 'gamebrickbreaker' %}">Brick Breaker</a></li>
+                    <li class="active"><a href="#">Tiger Jump</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="{% url 'home' %}">Home</a></li>
+                    <li><a href="{% url 'games' %}">Games</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+        </nav>
+        <canvas id="myCanvas"></canvas>
+        {% include 'tigerjump_script.html' %}
+    </body>
+</html>

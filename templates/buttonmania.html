@@ -1,0 +1,342 @@
+{% load staticfiles %}
+
+<!-- Name: Harish Fulara-->
+<!-- BUTTON MANIA -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>BUTTON MANIA - MEDIUM</title>
+	<link href="{% static 'css/normalize.css' %}" type="text/css" rel="stylesheet" />
+	{% include 'gamecss.html' %}
+	<style type="text/css">
+		body {
+			background-color: #333;
+		}
+		canvas {
+			display: block;
+			border: 3px solid black;
+			margin: 0 auto;
+		}
+	</style>	
+</head>
+<body>
+	<nav class="navbar">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="{% url 'home' %}">LetsPlayAGame</a>
+			</div>
+			<ul class="nav navbar-nav">
+				<li><a href="{% url 'game2048' %}">2048</a></li>
+				<li><a href="{% url 'gamebingohome' %}">Bingo</a></li>
+				<li class="active"><a href="#">Button Mania</a></li>
+				<li><a href="{% url 'gamebatshoot' %}">Bat Shoot</a></li>
+				<li><a href="{% url 'gamebrickbreaker' %}">Brick Breaker</a></li>
+				<li><a href="{% url 'gametigerjump' %}">Tiger Jump</a></li>
+			</ul>
+			<ul class="nav navbar-nav navbar-right">
+				<li><a href="{% url 'home' %}">Home</a></li>
+				<li><a href="{% url 'games' %}">Games</a></li>
+				<li><a href="#">Contact</a></li>
+			</ul>
+		</div>
+	</nav>
+	<div style="margin-top: 40px;">
+		<canvas id="clickCanvas" width="370" height="80" style="background-color: #ffdead;"></canvas>
+	</div>
+	<div style="margin-top: 10px;">
+		<canvas id="myCanvas" width="370" height="370" style="background-color: #ffdead;"></canvas>
+	</div>
+	<!-- The JavaScript, which is the complete brain behind the game-->
+	<script type="text/javascript">
+		var canvas = document.getElementById("myCanvas");
+		var ctx = canvas.getContext("2d");
+
+		var clickCanvas = document.getElementById("clickCanvas");
+		var clickCtx = clickCanvas.getContext("2d");
+
+		//Width of the tile
+		var tileWidth = 50;
+		//Height of the tile 
+		var tileHeight = 50;
+		//There are a total of 64 tiles in the game
+		var numberOfTiles = 36;
+		//Array of objects where each object stores the x-y coordinate and current value of a tile.
+		var tiles = [];
+		//Padding of each tile
+		var padding = 10;
+		//add mouse click sound
+		var clickSound = new Audio("{% static 'assets/tick.mp3' %}");
+		//add game over sound
+		var gameOver = new Audio("{% static 'assets/gameOver.mp3' %}");
+		//score of the user
+		var score = 0;
+
+		document.addEventListener("click", mouseClicked, false);
+
+		//function which handles the event when a mouse button is clicked
+		function mouseClicked(event) {
+			//check if the mouse is clicked inside the canvas
+			if(event.clientX <= canvas.offsetLeft + canvas.width && event.clientX >= canvas.offsetLeft && event.clientY >= canvas.offsetTop && event.clientY <= canvas.offsetTop + canvas.height)
+			{
+				var relativeX = event.clientX - canvas.offsetLeft;
+				var relativeY = event.clientY - canvas.offsetTop;
+
+				for(var i = 0 ; i < 6 ; i++)
+				{
+					for(var j = 0 ; j < 6 ; j++)
+					{
+						if(relativeX >= tiles[i][j].x && relativeX <= tiles[i][j].x + tileWidth && relativeY >= tiles[i][j].y && relativeY <= tiles[i][j].y + tileHeight)
+						{
+							clickSound.play();
+
+							if(tiles[i][j].value > 0)
+							{
+								tiles[i][j].value--;
+							}
+							else
+							{
+								tiles[i][j].value = 3;
+							}
+							drawTile(i, j);
+
+							if(i !== 0)
+							{
+								if(tiles[i-1][j].value > 0)
+								{
+									tiles[i-1][j].value--;
+								}
+								else
+								{
+									tiles[i-1][j].value = 3;
+								}
+								drawTile(i-1, j);
+							}
+
+							if(j !== 0)
+							{
+								if(tiles[i][j-1].value > 0)
+								{
+									tiles[i][j-1].value--;
+								}
+								else
+								{
+									tiles[i][j-1].value = 3;
+								}
+								drawTile(i, j-1);
+							}
+
+							if(i !== 5)
+							{
+								if(tiles[i+1][j].value > 0)
+								{
+									tiles[i+1][j].value--;
+								}
+								else
+								{
+									tiles[i+1][j].value = 3;
+								}
+								drawTile(i+1, j);
+							}
+
+							if(j !== 5)
+							{
+								if(tiles[i][j+1].value > 0)
+								{
+									tiles[i][j+1].value--;
+								}
+								else
+								{
+									tiles[i][j+1].value = 3;
+								}
+								drawTile(i, j+1);
+							}
+
+							score++;
+							drawScore();
+							checkGameOver();
+						}
+					}
+				}
+			}
+		}
+
+		/*
+			function to check if game is over
+		*/
+		function checkGameOver()
+		{
+			var finishFlag = true;
+
+			for(var i = 0 ; i < 6 ; i++)
+			{
+				for(var j = 0 ; j < 6 ; j++)
+				{
+					if(tiles[i][j].value > 0)
+					{
+						finishFlag = false;
+						break;
+					}
+				}
+			}
+
+			if(finishFlag)
+			{
+				gameOver.play();
+				alert("Congratulations!!! You Won the GAME");
+				document.location.reload();
+			}
+		}
+
+		/*
+			Function to initialize the tiles array.
+			The initial coordinates of a tile are (0,0).
+			Initial value of a tile is -1. -1 value means empty tile.
+		*/
+		function drawEmptyTilesInit() {
+			for(var i = 0 ; i < 6 ; i++)
+			{
+				tiles[i] = [];
+				for(var j = 0 ; j < 6 ; j++)
+				{
+					tiles[i][j] = {x:0 , y:0 , value:-1};
+				}
+			}
+		}
+
+		/*
+			Draw empty tiles on the 8x8 board when the game starts
+		*/
+		function drawEmptyTiles() {
+			for(var i = 0 ; i < 6 ; i++)
+			{
+				for(var j = 0 ; j < 6 ; j++)
+				{
+					tiles[i][j].x = ((j + 1) * padding) + (j * tileWidth);
+					tiles[i][j].y = ((i + 1) * padding) + (i * tileHeight);
+				}
+			}
+		}
+
+		/*
+			function to draw random numbers from 0 to 3 on the tiles and start the game
+		*/
+		function startGame()
+		{
+			for(var i = 0 ; i < 6 ; i++)
+			{
+				for(var j = 0 ; j < 6 ; j++)
+				{
+					var value = Math.random();
+					var textValue;
+
+					ctx.beginPath();
+					ctx.rect(tiles[i][j].x, tiles[i][j].y, tileWidth, tileHeight);
+
+					if(value < 0.6)
+					{
+						ctx.fillStyle = "green";
+						textValue = 3;
+					}
+					else if(value >= 0.6 && value < 0.85)
+					{
+						ctx.fillStyle = "#ffa500";
+						textValue = 2;
+					}
+					else if(value >= 0.85 && value < 0.95)
+					{
+						ctx.fillStyle = "yellow";
+						textValue = 1;
+					}
+					else
+					{
+						ctx.fillStyle = "fuchsia";
+						textValue = 0;
+					}
+					ctx.fill();
+					ctx.closePath();
+
+					tiles[i][j].value = textValue;
+
+					ctx.font = "bold 32px arial";
+					ctx.textAlign = "center";
+					ctx.textBaseline = "middle";
+					ctx.fillStyle = "#000";
+					ctx.fillText(textValue.toString(), tiles[i][j].x + tileWidth / 2, tiles[i][j].y + tileHeight / 2);
+				}
+			}
+		}
+
+		/*
+			Function to draw a value (0, 1, 2 or 3) inside a given tile.
+			posX and posY are the x and y coordinate of the tile on which we want to draw the value.
+		*/
+		function drawTile(posX, posY)
+		{	
+			//x coordinate where the value on the tile should be drawn
+			var textX = (tiles[posX][posY].x + (tileWidth / 2));
+			//y coordinate where the value on the tile should be drawn
+			var textY = (tiles[posX][posY].y + (tileHeight / 2));
+			//value to be drawn on the tile
+			var textValue = tiles[posX][posY].value;
+
+			//before drawing the value we should clear the tile first
+			ctx.beginPath();
+			ctx.rect(tiles[posX][posY].x, tiles[posX][posY].y, tileWidth, tileHeight);
+
+			if(textValue === 3)
+			{
+				ctx.fillStyle = "green";
+				//textValue = 3;
+			}
+			else if(textValue === 2)
+			{
+				ctx.fillStyle = "#ffa500";
+				//textValue = 2;
+			}
+			else if(textValue === 1)
+			{
+				ctx.fillStyle = "yellow";
+				//textValue = 1;
+			}
+			else
+			{
+				ctx.fillStyle = "fuchsia";
+				//textValue = 0;
+			}
+			ctx.fill();
+			ctx.closePath();
+
+			ctx.font = "bold 32px arial";
+			ctx.textAlign = "center";
+			ctx.textBaseline = "middle";
+			ctx.fillStyle = "#000";
+			ctx.fillText(textValue.toString(), textX, textY);
+		}
+
+		/*
+			function todisplay how many times user has clicked
+		*/
+		function drawScore()
+		{
+			clickCtx.beginPath();
+			clickCtx.rect(0, 0, clickCanvas.width, clickCanvas.height);
+			clickCtx.fillStyle = "#ffdead";
+			clickCtx.fill();
+			clickCtx.closePath();
+			
+			clickCtx.font = "bold 32px Arial"
+			clickCtx.textAlign = "center";
+			clickCtx.textBaseline = "middle";
+			clickCtx.fillStyle = "#000";
+			clickCtx.fillText("CLICKS USED: " + score, clickCanvas.width / 2, clickCanvas.height / 2);
+		}
+
+		drawEmptyTilesInit();
+		drawEmptyTiles();
+		startGame();
+		drawScore();
+	</script>
+</body>
+</html>

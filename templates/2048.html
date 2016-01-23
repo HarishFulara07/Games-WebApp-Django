@@ -1,0 +1,729 @@
+<!-- Name: Harish Fulara-->
+<!-- 2048 Game-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>2048 Game</title>
+	{% include 'gamecss.html' %}
+	<style type="text/css">
+		* {
+			padding: 0px;
+			margin: 0px;
+		}
+		body {
+			background-color: #333;
+		}
+		canvas {
+			display: block;
+			border: 3px solid black;
+			margin: 0 auto;
+			margin-top: 30px;
+		}
+	</style>	
+</head>
+<body>
+	<nav class="navbar">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="{% url 'home' %}">LetsPlayAGame</a>
+			</div>
+			<ul class="nav navbar-nav">
+				<li class="active"><a href="#">2048</a></li>
+				<li><a href="{% url 'gamebingohome' %}">Bingo</a></li>
+				<li><a href="{% url 'gamebuttonmania' %}">Button Mania</a></li>
+				<li><a href="{% url 'gamebatshoot' %}">Bat Shoot</a></li>
+				<li><a href="{% url 'gamebrickbreaker' %}">Brick Breaker</a></li>
+				<li><a href="{% url 'gametigerjump' %}">Tiger Jump</a></li>
+			</ul>
+			<ul class="nav navbar-nav navbar-right">
+				<li><a href="{% url 'home' %}">Home</a></li>
+				<li><a href="{% url 'games' %}">Games</a></li>
+				<li><a href="#">Contact</a></li>
+			</ul>
+		</div>
+	</nav>
+		<!-- Drawing the HTML5 canvas. The cancas is 480px wide and 320px long -->
+	<div>
+		<canvas id="scoreCanvas" width="450" height="60" style="background-color: #fff"></canvas>
+	</div>
+	<div>
+		<canvas id="myCanvas" width="450" height="450" style="background-color: #000; border: 0px"></canvas>
+	</div>
+	<!-- The JavaScript, which is the complete brain behind the game-->
+	<script type="text/javascript">
+		//Canvas on which game is played
+		var canvas = document.getElementById("myCanvas");
+		var ctx = canvas.getContext("2d");
+		//Canvas on which sore is displayed
+		var scoreCanvas = document.getElementById("scoreCanvas");
+		var scoreCtx = scoreCanvas.getContext("2d");
+
+		//Width of the tile
+		var tileWidth = 100;
+		//Height of the tile 
+		var tileHeight = 100;
+		//There are a total of 16 tiles in the 2048 game
+		var numberOfTiles = 16;
+		//Array of objects where each object stores the x-y coordinate and current value of a tile. It also stores a flag value.
+		var tiles = [];
+		//Padding of each tile
+		var padding = 10;
+		//Check whether atleast two tiles have shifted when we press one of the arrow keys
+		var doneShifting = false;
+		//Score of the user
+		var score = 0;
+		//flag which checks whether user has won the ga,e or not
+		var userWon = false;
+
+		//Event listener which calls the keyDownPressed() function whenever a key is pressed
+		document.addEventListener("keydown", keyDownPressed, false);
+
+		/*
+			Function to initialize the tiles array.
+			The initial coordinates of a tile are (0,0).
+			Initial value of a tile is 0. o value means empty tile.
+			Initial value of flag is 0.
+		*/
+		function drawEmptyTilesInit() {
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				tiles[i] = [];
+				for(var j = 0 ; j < 4 ; j++)
+				{
+					tiles[i][j] = {x:0 , y:0 , value:0 , flag:false};
+				}
+			}
+		}
+
+		/*
+			Draw empty tiles on the 4x4 board when the game starts
+		*/
+		function drawEmptyTiles() {
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{
+					tiles[i][j].x = ((j + 1) * padding) + (j * tileWidth);
+					tiles[i][j].y = ((i + 1) * padding) + (i * tileHeight);
+					ctx.beginPath();
+					ctx.rect(tiles[i][j].x, tiles[i][j].y, tileWidth, tileHeight);
+					ctx.fillStyle = "#0095dd";
+					ctx.fill();
+					ctx.closePath();
+				}
+			}
+		}
+
+		/*
+			Clear the falg of all the tiles
+		*/
+		function clearFlag() {
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{
+					tiles[i][j].flag = false;
+				}
+			}
+		}
+
+		/*
+			function which is called whenever a key is pressed.
+			The function checks which arrow key is pressed and calls the respective function.
+		*/
+		function keyDownPressed(event) {
+			//left arrow key is pressed
+			if(event.keyCode === 37)
+			{
+				leftKeyPressed();
+			}
+			//up arrow key is pressed
+			else if(event.keyCode === 38)
+			{
+				upKeyPressed();
+			}
+			//right arrow key is pressed
+			else if(event.keyCode === 39)
+			{
+				rightKeyPressed();
+			}
+			//down arrow key is pressed
+			else if(event.keyCode === 40)
+			{
+				downKeyPressed();
+			}
+		}
+
+		//Event that should occur when left arrow key is pressed 
+		function leftKeyPressed() {
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{	
+					for(var k = 0 ; k < 3 ; k++)
+					{
+						//check whether the current value of the tile is not zero and perform the desired task 
+						if(tiles[j][k].value !== 0)
+						{
+							//If the value of two adjacent tiles is same then merge the two tiles
+							if(tiles[j][k].value === tiles[j][k+1].value && !tiles[j][k].flag && !tiles[j][k+1].flag)
+							{
+								//make the value of left tile twice its current value because two tiles have merged into one
+								tiles[j][k].value *= 2;
+								//make the value of right tile zero because it has been merged with left tile
+								tiles[j][k+1].value = 0;
+								//set the flags of both the tiles to 1.
+								//flag value 1 means that the two tiles have merged and now they cannot merge again untill
+								//the user presses one of the arrow keys again 
+								tiles[j][k].flag = true;
+								tiles[j][k+1].flag = true;	
+								drawTile(j, k);
+								drawTile(j, k+1);
+								score += tiles[j][k].value;
+								doneShifting = true;
+							}
+						}
+						//the current value of the tile is zero 
+						else
+						{
+							//if the tile adjacent to the empty tile has non zero value then shift that tile to left by 1 position 
+							if(tiles[j][k+1].value !== 0)
+							{
+								tiles[j][k].value = tiles[j][k+1].value;
+								tiles[j][k+1].value = 0;
+								drawTile(j, k);
+								drawTile(j, k+1);
+								doneShifting = true;
+							}
+						}
+					}
+				}
+			}
+			//clear the flag of all the tiles so that they can be merged again when user presses one of the arrow keys.
+			clearFlag();
+			//generate a new tile in the end when we have finished merging and shifting the tiles.
+			if(doneShifting)
+			{
+				generateTile();
+			}
+			//clear the doneShifting flag
+			doneShifting = false;
+		}
+
+		//Event that should occur when right arrow key is pressed 
+		function rightKeyPressed() {
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{	
+					for(var k = 3 ; k > 0 ; k--)
+					{
+						//check whether the current value of the tile is not zero and perform the desired task 
+						if(tiles[j][k].value !== 0)
+						{
+							//If the value of two adjacent tiles is same then merge the two tiles
+							if(tiles[j][k].value === tiles[j][k-1].value && !tiles[j][k].flag && !tiles[j][k-1].flag)
+							{
+								//make the value of right tile twice its current value because two tiles have merged into one
+								tiles[j][k].value *= 2;
+								//make the value of left tile zero because it has been merged with left tile
+								tiles[j][k-1].value = 0;
+								//set the flags of both the tiles to 1.
+								//flag value 1 means that the two tiles have merged and now they cannot merge again untill
+								//the user presses one of the arrow keys again 
+								tiles[j][k].flag = true;
+								tiles[j][k-1].flag = true;	
+								drawTile(j, k);
+								drawTile(j, k-1);
+								score += tiles[j][k].value;
+								doneShifting = true;
+							}
+						}
+						//the current value of the tile is zero 
+						else
+						{
+							//if the tile adjacent to the empty tile has non zero value then shift that tile to right by 1 position 
+							if(tiles[j][k-1].value !== 0)
+							{
+								tiles[j][k].value = tiles[j][k-1].value;
+								tiles[j][k-1].value = 0;
+								drawTile(j, k);
+								drawTile(j, k-1);
+								doneShifting = true;
+							}
+						}
+					}
+				}
+			}
+			//clear the flag of all the tiles so that they can be merged again when user presses one of the arrow keys.
+			clearFlag();
+			//generate a new tile in the end when we have finished merging and shifting the tiles.
+			if(doneShifting)
+			{
+				generateTile();
+			}
+			//clear the doneShifting flag
+			doneShifting = false;
+		}
+
+		//Event that should occur when up arrow key is pressed 
+		function upKeyPressed() {
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{	
+					for(var k = 0 ; k < 3 ; k++)
+					{
+						//check whether the current value of the tile is not zero and perform the desired task 
+						if(tiles[k][j].value !== 0)
+						{
+							//If the value of two adjacent tiles is same then merge the two tiles
+							if(tiles[k][j].value === tiles[k+1][j].value && !tiles[k][j].flag && !tiles[k+1][j].flag)
+							{
+								//make the value of upper tile twice its current value because two tiles have merged into one
+								tiles[k][j].value *= 2;
+								//make the value of lower tile zero because it has been merged with left tile
+								tiles[k+1][j].value = 0;
+								//set the flags of both the tiles to 1.
+								//flag value 1 means that the two tiles have merged and now they cannot merge again untill
+								//the user presses one of the arrow keys again 
+								tiles[k][j].flag = true;
+								tiles[k+1][j].flag = true;	
+								drawTile(k, j);
+								drawTile(k+1, j);
+								score += tiles[k][j].value;
+								doneShifting = true;
+							}
+						}
+						//the current value of the tile is zero 
+						else
+						{
+							//if the tile adjacent to the empty tile has non zero value then shift that tile to right by 1 position 
+							if(tiles[k+1][j].value !== 0)
+							{
+								tiles[k][j].value = tiles[k+1][j].value;
+								tiles[k+1][j].value = 0;
+								drawTile(k, j);
+								drawTile(k+1, j);
+								doneShifting = true;
+							}
+						}
+					}
+				}
+			}
+			//clear the flag of all the tiles so that they can be merged again when user presses one of the arrow keys.
+			clearFlag();
+			//generate a new tile in the end when we have finished merging and shifting the tiles.
+			if(doneShifting)
+			{
+				generateTile();
+			}
+			//clear the doneShifting flag
+			doneShifting = false;
+		}
+
+		//Event that should occur when down arrow key is pressed 
+		function downKeyPressed(){
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{	
+					for(var k = 3 ; k > 0 ; k--)
+					{
+						//check whether the current value of the tile is not zero and perform the desired task 
+						if(tiles[k][j].value !== 0)
+						{
+							//If the value of two adjacent tiles is same then merge the two tiles
+							if(tiles[k][j].value === tiles[k-1][j].value && !tiles[k][j].flag && !tiles[k-1][j].flag)
+							{
+								//make the value of upper tile twice its current value because two tiles have merged into one
+								tiles[k][j].value *= 2;
+								//make the value of lower tile zero because it has been merged with left tile
+								tiles[k-1][j].value = 0;
+								//set the flags of both the tiles to 1.
+								//flag value 1 means that the two tiles have merged and now they cannot merge again untill
+								//the user presses one of the arrow keys again 
+								tiles[k][j].flag = true;
+								tiles[k-1][j].flag = true;	
+								drawTile(k, j);
+								drawTile(k-1, j);
+								score += tiles[k][j].value;
+								doneShifting = true;
+							}
+						}
+						//the current value of the tile is zero 
+						else
+						{
+							//if the tile adjacent to the empty tile has non zero value then shift that tile to right by 1 position 
+							if(tiles[k-1][j].value !== 0)
+							{
+								tiles[k][j].value = tiles[k-1][j].value;
+								tiles[k-1][j].value = 0;
+								drawTile(k, j);
+								drawTile(k-1, j);
+								doneShifting = true;
+							}
+						}
+					}
+				}
+			}
+			//clear the flag of all the tiles so that they can be merged again when user presses one of the arrow keys.
+			clearFlag();
+			//generate a new tile in the end when we have finished merging and shifting the tiles.
+			if(doneShifting)
+			{
+				generateTile();
+			}
+			//clear the doneShifting flag
+			doneShifting = false;
+		}
+
+		/*
+			Function to draw a value (2,4,8,....,2048) inside a given tile.
+			posX and posY are the x and y coordinate of the tile on which we want to draw the value.
+		*/
+		function drawTile(posX, posY)
+		{	
+			//x coordinate where the value on the tile should be drawn
+			var textX = (tiles[posX][posY].x + (tileWidth / 2));
+			//y coordinate where the value on the tile should be drawn
+			var textY = (tiles[posX][posY].y + (tileHeight / 2));
+			//value to be drawn on the tile
+			var textValue = tiles[posX][posY].value;
+
+			//before drawing the value we should clear the tile first
+			ctx.beginPath();
+			ctx.rect(tiles[posX][posY].x, tiles[posX][posY].y, tileWidth, tileHeight);
+
+			if(textValue === 0)
+			{
+				ctx.fillStyle = "#0095dd";
+				ctx.fill();
+			}
+			else if(textValue === 2)
+			{
+				ctx.fillStyle = "#00ff7f";
+				ctx.fill();
+			}
+			else if(textValue === 4)
+			{
+				ctx.fillStyle = "#ffa500";
+				ctx.fill();
+			}
+			else if(textValue === 8)
+			{
+				ctx.fillStyle = "#c5c1aa";
+				ctx.fill();
+			}
+			else if(textValue === 16)
+			{
+				ctx.fillStyle = "#00ff00";
+				ctx.fill();
+			}
+			else if(textValue === 32)
+			{
+				ctx.fillStyle = "#808000";
+				ctx.fill();			}
+			else if(textValue === 64)
+			{
+				ctx.fillStyle = "#ffff00";
+				ctx.fill();
+			}
+			else if(textValue === 128)
+			{
+				ctx.fillStyle = "#ff00ff";
+				ctx.fill();
+			}
+			else if(textValue === 256)
+			{
+				ctx.fillStyle = "#db7093";
+				ctx.fill();
+			}
+			else if(textValue === 512)
+			{
+				ctx.fillStyle = "#ff6347";
+				ctx.fill();
+			}
+			else if(textValue === 1024)
+			{
+				ctx.fillStyle = "#ee82ee";
+				ctx.fill();
+			}
+			else if(textValue === 2048)
+			{
+				ctx.fillStyle = "#ff0000";
+				ctx.fill();
+			}
+			else if(textValue === 4096)
+			{
+				ctx.fillStyle = "#ffffff";
+				ctx.fill();
+			}
+			else if(textValue === 8192)
+			{
+				ctx.fillStyle = "#dda0dd";
+				ctx.fill();
+			}
+			else if(textValue === 16384)
+			{
+				ctx.fillStyle = "#cd853f";
+				ctx.fill();
+			}
+			else if(textValue === 32768)
+			{
+				ctx.fillStyle = "#ffc0cb";
+				ctx.fill();
+			}
+			else if (textValue === 65536)
+			{
+				ctx.fillStyle = "#ffdead";
+				ctx.fill();
+			}
+			ctx.closePath();
+
+			if(textValue === 0)
+			{
+				return;
+			}
+			else if(textValue === 2)
+			{
+				ctx.font = "bold 64px Arial";
+			}
+			else if(textValue === 4)
+			{
+				ctx.font = "bold 64px Arial";
+			}
+			else if(textValue === 8)
+			{
+				ctx.font = "bold 64px Arial";
+			}
+			else if(textValue === 16)
+			{
+				ctx.font = "bold 64px Arial";
+			}
+			else if(textValue === 32)
+			{
+				ctx.font = "bold 64px Arial";
+			}
+			else if(textValue === 64)
+			{
+				ctx.font = "bold 64px Arial";
+			}
+			else if(textValue === 128)
+			{
+				ctx.font = "bold 48px Arial";
+			}
+			else if(textValue === 256)
+			{
+				ctx.font = "bold 48px Arial";
+			}
+			else if(textValue === 512)
+			{
+				ctx.font = "bold 48px Arial";
+			}
+			else if(textValue === 1024)
+			{
+				ctx.font = "bold 38px Arial";
+			}
+			else if(textValue === 2048)
+			{
+				ctx.font = "bold 38px Arial";
+			}
+			else if(textValue === 4096)
+			{
+				ctx.font = "bold 38px Arial";
+			}
+			else if(textValue === 8192)
+			{
+				ctx.font = "bold 38px Arial";
+			}
+			else if(textValue === 16384)
+			{
+				ctx.font = "bold 32px Arial";
+			}
+			else if(textValue === 32768)
+			{
+				ctx.font = "bold 32px Arial";
+			}
+			else if(textValue === 65536)
+			{
+				ctx.font = "bold 32px Arial";
+			}
+
+			ctx.fillStyle = "#000000";
+			ctx.textAlign = "center";
+			ctx.textBaseline = "middle";
+			//console.log(textX + " " + textY);
+			ctx.fillText(textValue.toString(), textX, textY);
+			//update the score of the user
+			displayUserScore();
+		}
+
+		/*
+			Function to display score of the user
+		*/
+		function displayUserScore() {
+			//before drawing the value we should clear the canvas first
+			scoreCtx.beginPath();
+			scoreCtx.rect(0, 0, scoreCanvas.width, scoreCanvas.height);
+			scoreCtx.fillStyle = "#fff";
+			scoreCtx.fill();
+			scoreCtx.closePath();
+
+			scoreCtx.font = "bold 48px Arial";
+			scoreCtx.fillStyle = "#0095dd";
+			scoreCtx.textAlign = "center";
+			scoreCtx.textBaseline = "middle";
+			scoreCtx.fillText("Score: " + score, scoreCanvas.width / 2, scoreCanvas.height / 2);
+		}
+
+		/*
+			Function to initialise the game. It starts the game by giving any two random tiles a value of 2.
+		*/
+		function startGameInit(){
+			//Randomly selecting position of two tiles (position can be anything from 0 to 15).
+			var pos1 = Math.floor(Math.random() * 16);
+			var pos2 = Math.floor(Math.random() * 16);;
+			
+			//if both the positions come out to be same then we define the positionof second tile as follows
+			if(pos1 === pos2)
+			{
+				pos2 = pos1 + 3;	
+			}
+
+			//Calculating x-y coordinates of the tiles from their positions
+			var x1 = Math.floor(pos1/4);
+			var y1 = pos1 % 4;
+			var x2 = Math.floor(pos2/4);
+			var y2 = pos2 % 4;
+
+			tiles[x1][y1].value = 2;
+			tiles[x2][y2].value = 2;
+
+			drawTile(x1, y1);
+			drawTile(x2, y2);
+		}
+
+		/*
+			It randomly generates a tile after user has pressed one of the arrow keys.
+		*/
+		function generateTile() {
+			var value = Math.random() < 0.9 ? 2 : 4;
+			var emptyTiles = [];
+			var index = 0;
+
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{
+					if(tiles[i][j].value === 0)
+					{
+						emptyTiles[index] = (4*i) + j;
+						index++;
+					}
+				}
+			}
+
+			var pos = Math.floor(Math.random() * index);
+			var posX = Math.floor(emptyTiles[pos] / 4);
+			var posY = emptyTiles[pos] % 4;
+			tiles[posX][posY].value = value;
+
+			drawTile(posX, posY);
+			
+			//check whether user won the game if he has not already won the game
+			if(!userWon)
+			{
+				checkGameWon();
+			}
+			//Check whether game is over or not
+			checkGameOver();
+		}
+
+		/*
+			function to check whether the user won the game
+		*/
+		function checkGameWon()
+		{
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{
+					if(tiles[i][j].value === 2048)
+					{
+						userWon = true;
+						alert("Congratulations!!! You won the game");
+					}
+				}
+			}
+		}
+
+		/*
+			function to check whether the game is over or not
+		*/
+		function checkGameOver()
+		{
+			var checkFlag = false;
+
+			//If there is atleast one empty tile then we need not worry
+			for(var i = 0 ; i < 4 ; i++)
+			{
+				for(var j = 0 ; j < 4 ; j++)
+				{
+					if(tiles[i][j].value === 0)
+					{
+						checkFlag = true;
+						break;
+					}
+				}
+			}
+
+			//Check horizontally for equal tiles
+			if(!checkFlag)
+			{
+				for(var i = 0 ; i < 4 ; i++)
+				{
+					for(var j = 0 ; j < 3 ; j++)
+					{
+						if(tiles[i][j].value === tiles[i][j+1].value)
+						{
+							checkFlag = true;
+							break;
+						}
+					}
+				}
+			}
+
+			//check vertically for equal tiles
+			if(!checkFlag)
+			{
+				for(var i = 0 ; i < 4 ; i++)
+				{
+					for(var j = 0 ; j < 3 ; j++)
+					{
+						if(tiles[j][i].value === tiles[j+1][i].value)
+						{
+							checkFlag = true;
+							break;
+						}
+					}
+				}	
+			}
+
+			//If all the tiles are filled and no two adjacent tiles are equal then GAME is OVER 
+			if(!checkFlag)
+			{
+				alert("GAME OVER");
+				document.location.reload();
+			}
+		}
+
+		//Calling the functions once to set up the game
+		drawEmptyTilesInit()
+		drawEmptyTiles();
+		startGameInit();
+	</script>
+</body>
+</html>

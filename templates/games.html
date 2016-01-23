@@ -1,0 +1,35 @@
+{% extends 'home.html' %}
+{% load staticfiles %}
+
+{% block head %}
+{{ block.super }}
+{% endblock %}
+
+{% block body %}
+<div class="row">
+	<div class="col-xs-4">
+		<a href="{% url 'game2048' %}"><img src="{% static 'img/2048.png' %}" height="200" width="200"></a>
+	</div>
+	<div class="col-xs-4">
+		<a href="{% url 'gamebingohome' %}"><img src="{% static 'img/bingo.png' %}" height="200" width="200"></a>
+	</div>
+	<div class="col-xs-4">
+		<a href="{% url 'gamebuttonmania' %}"><img src="{% static 'img/buttonmania.png' %}" height="200" width="200" style="border: 5px solid white; border-radius: 5px;"></a>
+	</div>
+</div>
+<div class="row" style="margin-top: 20px">
+	<div class="col-xs-4">
+		<a href="{% url 'gamebatshoot' %}"><img src="{% static 'img/batshoot.png' %}" height="200" width="200"></a>
+	</div>
+	<div class="col-xs-4">
+		<a href="{% url 'gamebrickbreaker' %}"><img src="{% static 'img/brickbreaker.jpg' %}" height="200" width="200" style="border: 5px solid white; border-radius: 5px;"></a>
+	</div>
+	<div class="col-xs-4">
+		<a href="{% url 'gametigerjump' %}"><img src="{% static 'img/tigerjump.png' %}" height="200" width="200"></a>
+	</div>
+</div>
+{% endblock %}
+
+{% block foot %}
+{{ block.super }}
+{% endblock %}
