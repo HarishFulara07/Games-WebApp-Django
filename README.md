@@ -1,8 +1,8 @@
 # Games-WebApp-Django
 
-Django app having some basic JavaScript games such as BINGO, 2048, Brick-Breaker, etc. You can check the app running on http://letsplayagame.herokuapp.com
+Django app for playing some basic JavaScript games such as BINGO, 2048, Brick-Breaker, etc. You can play the games on http://letsplayagame.herokuapp.com
 
-# Description
+**Description**
 
 1. JSGames contains Django App files such as views.py, models.py, etc.
 2. src contains Django Project files such as urls.py, wsgi.py, settings.py, etc.
