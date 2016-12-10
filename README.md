@@ -1,6 +1,6 @@
 # Games-WebApp-Django
 
-Django app for playing some basic JavaScript games such as BINGO, 2048, Brick-Breaker, etc. You can play the games on http://letsplayagame.herokuapp.com
+Django app for playing some basic JavaScript games such as BINGO, 2048, Brick-Breaker, etc. You can play the games on https://letsplayagame.herokuapp.com/
 
 **Description**
 
